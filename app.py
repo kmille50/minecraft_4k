@@ -1,79 +1,85 @@
 import streamlit as st
-import random
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Survie Minecraft", page_icon="🧱")
+st.title("🧱 Mini Minecraft 3D")
 
-# Initialisation des stats
-if "health" not in st.session_state:
-    st.session_state.health = 100
-    st.session_state.inventory = []
-    st.session_state.day = 1
-    st.session_state.game_over = False
+html_code = """
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
 
-st.title("🧱 Survie Minecraft")
-st.write("Prends des décisions pour survivre le plus longtemps possible !")
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-# Affichage des stats
-st.write(f"❤️ Santé : {st.session_state.health}")
-st.write(f"📅 Jour : {st.session_state.day}")
-st.write(f"🎒 Inventaire : {', '.join(st.session_state.inventory) if st.session_state.inventory else 'Vide'}")
+<script>
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 
-if st.session_state.game_over:
-    st.error("💀 Game Over !")
-    if st.button("🔄 Rejouer"):
-        st.session_state.health = 100
-        st.session_state.inventory = []
-        st.session_state.day = 1
-        st.session_state.game_over = False
-    st.stop()
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-st.divider()
+// Lumière
+let light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 5);
+scene.add(light);
 
-st.subheader("Que veux-tu faire ?")
+// Sol en cubes (style Minecraft)
+let size = 10;
 
-col1, col2, col3 = st.columns(3)
+for (let x = 0; x < size; x++) {
+  for (let z = 0; z < size; z++) {
+    let geometry = new THREE.BoxGeometry(1, 1, 1);
+    let material = new THREE.MeshLambertMaterial({ color: 0x55aa55 });
+    let cube = new THREE.Mesh(geometry, material);
 
-# ACTION 1 : Récolter
-if col1.button("🌲 Récolter du bois"):
-    st.session_state.inventory.append("Bois")
-    st.success("Tu as récupéré du bois !")
+    cube.position.set(x, 0, z);
+    scene.add(cube);
+  }
+}
 
-# ACTION 2 : Explorer
-if col2.button("🧭 Explorer"):
-    event = random.choice(["trésor", "monstre", "rien"])
-    
-    if event == "trésor":
-        st.session_state.inventory.append("Fer")
-        st.success("Tu trouves du fer !")
-        
-    elif event == "monstre":
-        damage = random.randint(10, 30)
-        st.session_state.health -= damage
-        st.warning(f"Un zombie t'attaque ! -{damage} ❤️")
-        
-    else:
-        st.info("Rien d'intéressant ici...")
+// Joueur (cube bleu)
+let playerGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+let playerMat = new THREE.MeshLambertMaterial({ color: 0x0000ff });
+let player = new THREE.Mesh(playerGeo, playerMat);
+player.position.set(5, 1, 5);
+scene.add(player);
 
-# ACTION 3 : Se reposer
-if col3.button("🔥 Se reposer"):
-    heal = random.randint(5, 20)
-    st.session_state.health += heal
-    st.success(f"Tu récupères {heal} ❤️")
+// Caméra
+camera.position.set(5, 5, 10);
 
-# Passage au jour suivant
-if st.button("⏭️ Passer au jour suivant"):
-    st.session_state.day += 1
-    
-    # Événement nocturne
-    night_event = random.choice(["attaque", "calme"])
-    
-    if night_event == "attaque":
-        damage = random.randint(5, 25)
-        st.session_state.health -= damage
-        st.warning(f"La nuit est dangereuse... -{damage} ❤️")
-    else:
-        st.success("Nuit calme 😌")
+// Contrôles clavier
+document.addEventListener("keydown", (event) => {
+  let step = 0.2;
 
-# Vérification mort
-if st.session_state.health <= 0:
-    st.session_state.game_over = True
+  if (event.key === "ArrowUp") player.position.z -= step;
+  if (event.key === "ArrowDown") player.position.z += step;
+  if (event.key === "ArrowLeft") player.position.x -= step;
+  if (event.key === "ArrowRight") player.position.x += step;
+});
+
+// Animation
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Caméra suit le joueur
+  camera.position.x = player.position.x;
+  camera.position.z = player.position.z + 5;
+  camera.lookAt(player.position);
+
+  renderer.render(scene, camera);
+}
+
+animate();
+</script>
+
+</body>
+</html>
+"""
+
+components.html(html_code, height=600)
